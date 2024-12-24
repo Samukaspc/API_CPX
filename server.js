@@ -13,10 +13,13 @@ function formatDate(dateStr) {
     const [day, month, year] = dateStr.split('/');
     return `${year}-${month}-${day}`;
 }
+app.get('/', (req, res) => {
+    res.send('API de bate-ponto rodando!');
+});
 
 app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
     const { data_inicio, data_final, usuarios } = req.body;
-    
+
     function dateToMinutes(dateStr) {
         return new Promise((resolve, reject) => {
             try {

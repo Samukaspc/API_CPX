@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
-    const { data_inicio, data_final, usuarios } = req.body;
+    const { data_inicio, data_final, usuarios, guarnicao,registro_deletado } = req.body;
 
     function dateToMinutes(dateStr) {
         return new Promise((resolve, reject) => {
@@ -42,8 +42,8 @@ app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
                     data_inicio: formatDate(data_inicio),
                     data_final: formatDate(data_final),
                     usuario: usuarioId, 
-                    'guarnicao[]': 2, 
-                    registro_deletado: 0
+                    'guarnicao[]': guarnicao,
+                    registro_deletado: registro_deletado || 0,
                 }),
                 {
                     headers: {

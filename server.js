@@ -17,20 +17,46 @@ app.get('/', (req, res) => {
     res.send('API de bate-ponto rodando!');
 });
 
+async function fetchData() {
+    const url = 'https://policia.complexorjbrasil.com.br/php/banco.php?tab=bateponto&acao=lista_usuarios';
+    const headers = {
+        Cookie: 'PHPSESSID=723c15af95f87362437c33576809a4a4; sidenav-state=unpinned'
+    };
+
+    try {
+        const response = await axios.get(url, { headers });
+        return response.data; 
+    } catch (error) {
+        console.error('Erro ao buscar dados:', error.message);
+        throw new Error('Não foi possível buscar os dados.');
+    }
+}
+
+app.get('/api/data', async (_, res) => {
+    try {
+        const data = await fetchData();
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
     const { data_inicio, data_final, usuarios, guarnicao,registro_deletado } = req.body;
 
     function dateToMinutes(dateStr) {
         return new Promise((resolve, reject) => {
             try {
-                const [day, month, year, hour, minute] = dateStr.split(/[\s/:]/);
-                const date = new Date(year, month - 1, day, hour, minute);
-                resolve(date.getTime() / 10000); 
+                const [day, month, year, hour, minute, second] = dateStr.split(/[\s/:]/);
+                const date = new Date(year, month - 1, day, hour, minute, second);
+                const minutes = date.getHours() * 60 + date.getMinutes();
+                resolve(minutes); 
             } catch (error) {
                 reject(error);
             }
         });
     }
+
 
     async function getHorasUsuario(usuarioId) {
         try {
@@ -52,11 +78,12 @@ app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
                 }
             );
 
-            const dataTeste = response.data;
+            const data = response.data;
             let totalMinutes = 0;
-
-            if (dataTeste && dataTeste.dados && dataTeste.dados.length > 0) {
-                const promises = dataTeste.dados.map(async (item) => {
+            let nomeUsuario = '';
+            
+            if (data && data.dados && data.dados.length > 0) {
+                const promises = data.dados.map(async (item) => {
                     const dt_inicio = item.dt_inicio;
                     const dt_final = item.dt_final;
 
@@ -66,8 +93,9 @@ app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
 
                         const durationMinutes = endMinutes - startMinutes;
                         totalMinutes += durationMinutes;
+                        nomeUsuario = item.nome_usuario;
                     } catch (error) {
-                        console.error('Erro ao calcular a duração para o ponto do usuário', usuarioId, error);
+                        console.error('Erro ao calcular a duração para o ponto do usuário', usuarioId,nome_usuario, error);
                     }
                 });
 
@@ -78,13 +106,13 @@ app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
 
                 console.log(`Usuário ${usuarioId}: ${hours} horas e ${minutes} minutos.`);
 
-                return { usuarioId, totalTempo: `${hours} horas e ${minutes} minutos` };
+                return { usuarioId,nomeUsuario, totalTempo: `${hours} horas e ${minutes} minutos` };
             } else {
-                return { usuarioId, totalTempo: 'Nenhum dado encontrado' };
+                return { usuarioId,nomeUsuario, totalTempo: 'Nenhum dado encontrado' };
             }
         } catch (error) {
             console.error('Erro ao chamar a API de ponto para o usuário', usuarioId, error.message);
-            return { usuarioId, totalTempo: 'Erro ao processar dados' };
+            return { usuarioId,nomeUsuario, totalTempo: 'Erro ao processar dados' };
         }
     }
 
@@ -99,6 +127,7 @@ app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
 });
 
 const PORT = 3000;
+
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`Servidor rodando`);
 });

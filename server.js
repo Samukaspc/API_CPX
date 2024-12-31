@@ -43,7 +43,6 @@ app.get('/api/data', async (_, res) => {
 
 app.post('/api/consulta-ponto', upload.none(), async (req, res) => {
     const { data_inicio, data_final, usuarios, guarnicao, registro_deletado } = req.body;
-    console.log('guarnicao:', guarnicao);
 
     const guarnicoes = {
         1: 'PMERJ',
